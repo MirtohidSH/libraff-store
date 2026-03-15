@@ -27,7 +27,7 @@ public class SalaryHistory {
     private BigDecimal salaryAmount;
 
     @Column(nullable = false)
-    private BigDecimal bonusAmount= BigDecimal.valueOf(0.0);
+    private BigDecimal bonusAmount;
 
     @Column(nullable = false)
     private BigDecimal totalAmount;

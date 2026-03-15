@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.libraffstore.enums.DiscountType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -23,15 +22,13 @@ public class Discount {
     @Column(nullable = false)
     private String name;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private DiscountType discountType;
+    private BigDecimal discountPercentage;
 
     @Column(nullable = false)
-    private BigDecimal discountPercent;
-
     private LocalDate startDate;
 
+    @Column(nullable = false)
     private LocalDate endDate;
 
     @Column(nullable = false)

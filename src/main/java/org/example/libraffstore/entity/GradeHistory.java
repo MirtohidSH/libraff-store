@@ -4,10 +4,10 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.libraffstore.enums.GradeStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "grade_histories")
@@ -20,33 +20,35 @@ public class GradeHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal bonusAmount;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
+    private Employee employee;
 
-    // Bonus hesablananda işçinin maaşı
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grade_id")
+    private GradeStructure gradeStructure;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "position_id")
+    private Position position;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id")
+    private Store store;
+
+    @Column(nullable = false)
+    private LocalDate gradeDate;
+
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal salaryAtTime;
+    private BigDecimal achievedSales;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal calculatedGradeAmount;
 
     @Column(nullable = false)
     private LocalDate periodStart;
 
     @Column(nullable = false)
     private LocalDate periodEnd;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private GradeStatus status;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
-    private Employee employee;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grade_store_id")
-    private GradeStore gradeStore;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grade_position_id")
-    private GradePosition gradePosition;
 }
 
