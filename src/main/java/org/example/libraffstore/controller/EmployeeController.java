@@ -3,7 +3,6 @@ package org.example.libraffstore.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.libraffstore.dto.request.EmployeeRequest;
-import org.example.libraffstore.dto.request.EmployeeTransferRequest;
 import org.example.libraffstore.dto.response.EmployeeResponse;
 import org.example.libraffstore.service.EmployeeService;
 import org.springframework.http.HttpStatus;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping(path = "/employees")
+@RequestMapping("/employees")
 @RequiredArgsConstructor
 public class EmployeeController {
 
@@ -30,7 +29,7 @@ public class EmployeeController {
     }
 
     @GetMapping("/active")
-    public ResponseEntity<List<EmployeeResponse>> getActive() {
+    public ResponseEntity<List<EmployeeResponse>> getAllActive() {
         return ResponseEntity.ok(employeeService.findAllActive());
     }
 
@@ -45,12 +44,7 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeService.updateEmployee(id, request));
     }
 
-    @PostMapping("/transfer")
-    public ResponseEntity<EmployeeResponse> transfer(@Valid @RequestBody EmployeeTransferRequest request) {
-        return ResponseEntity.ok(employeeService.transferEmployee(request));
-    }
-
-    @PatchMapping("/{id}/delete-employee")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         employeeService.deleteEmployee(id);
         return ResponseEntity.noContent().build();
