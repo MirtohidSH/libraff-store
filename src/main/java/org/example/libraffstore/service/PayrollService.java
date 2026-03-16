@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
@@ -32,8 +33,8 @@ public class PayrollService {
     private final GradeStoreRepository gradeStoreRepository;
     private final GradeService gradeService;
 
-//    @Scheduled(cron = "0 0 0 1 * *")
-    @Scheduled(cron = "*/10 * * * * *")
+    @Scheduled(cron = "0 0 0 1 * *")
+   //    @Scheduled(cron = "*/10 * * * * *")
     @Transactional
     public void payMonthlySalary() {
         log.info("Starting automated payroll processing...");
@@ -90,6 +91,17 @@ public class PayrollService {
 
         BigDecimal totalBonus = employeeBonus.add(storeBonus);
 
+        GradeStructure bestGrade = employeeGrades != null && !employeeGrades.isEmpty()
+                ? employeeGrades.stream()
+                .filter(g -> g.getMinThreshold() != null)
+                .max(Comparator.comparing(GradeStructure::getMinThreshold))
+                .orElse(null)
+                : null;
+
+        if (bestGrade != null) {
+            gradeService.saveGradeHistory(totalBonus, bestGrade, employee, periodStart, periodEnd);
+        }
+
         saveSalaryHistory(employee, salaryAmount, totalBonus, currentPeriod);
         log.info("Successfully processed salary for Employee: {}", employee.getFirstName());
     }
@@ -98,12 +110,10 @@ public class PayrollService {
 
         LocalDate hireDate = employee.getDateEmployed();
 
-        // If hired before this month started, give full salary.
         if (!hireDate.isAfter(startOfMonth)) { // alternative: hireDate.getDayOfMonth() == 1
             return employee.getSalary();
         }
 
-        // If the employee is hired after 1st day of month
         LocalDate endOfMonth = hireDate.with(TemporalAdjusters.lastDayOfMonth());
         long daysWorked = ChronoUnit.DAYS.between(hireDate, endOfMonth) + 1;
         int totalDaysInMonth = startOfMonth.lengthOfMonth();
@@ -115,7 +125,9 @@ public class PayrollService {
     }
 
     private void saveSalaryHistory(Employee employee, BigDecimal salaryAmount, BigDecimal totalBonus, String currentPeriod) {
+
         SalaryHistory salaryHistory = new SalaryHistory();
+
         salaryHistory.setEmployee(employee);
         salaryHistory.setSalaryAmount(salaryAmount);
         salaryHistory.setBonusAmount(totalBonus);
