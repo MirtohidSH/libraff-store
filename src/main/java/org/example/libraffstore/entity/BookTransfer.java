@@ -36,12 +36,13 @@ public class BookTransfer {
     private Employee requestedEmployee;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approved_employee_id", nullable = false)
+    @JoinColumn(name = "approved_employee_id")
     private Employee approvedEmployee;
 
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(nullable = false)
     private LocalDateTime requestedAt;
 
     private LocalDateTime approvedAt;

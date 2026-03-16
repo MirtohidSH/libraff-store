@@ -1,8 +1,8 @@
 package org.example.libraffstore.enums;
 
 public enum HistoryType {
-    HIRED,
+    HIRED,//ISE GOTURULDU
     TRANSFERRED,
-    RESIGNED,
-    REHIRED
+    RESIGNED,//CIXMIS
+    REHIRED//YENIDEN ISE GIRME
 }
