@@ -22,7 +22,7 @@ public class Discount {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "discount_percent",nullable = false)
     private BigDecimal discountPercentage;
 
     @Column(nullable = false)
