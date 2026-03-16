@@ -11,5 +11,5 @@ import java.util.List;
 public interface GradeStoreRepository extends JpaRepository<GradeStore, Long> {
 
     @Query("SELECT gp.gradeStructure FROM GradeStore gp WHERE gp.store.id = :storeId")
-    public List<GradeStructure> findAllGradesByStoreId(Long storeId);
+    List<GradeStructure> findAllGradesByStoreId(Long storeId);
 }
