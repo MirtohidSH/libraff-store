@@ -1,0 +1,38 @@
+services:
+  libraff-store:
+    build: .
+    ports:
+      - "8082:8080"
+    environment:
+      DB_URL: jdbc:postgresql://libraff-db:5432/libraff-db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+    depends_on:
+      libraff-db:
+        condition: service_healthy
+    networks:
+      - libraff-network
+
+  libraff-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: libraff-db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    networks:
+      - libraff-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d libraff-db -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  libraff-network:
+
+volumes:
+  postgres-data:
