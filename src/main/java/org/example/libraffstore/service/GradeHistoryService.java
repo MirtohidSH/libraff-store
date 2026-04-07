@@ -23,7 +23,7 @@ public class GradeHistoryService {
     private final ModelMapper modelMapper;
 
     public List<GradeHistoryResponse> findAll() {
-        return gradeHistoryRepository.findAll()
+        return gradeHistoryRepository.findAllWithDetails()
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

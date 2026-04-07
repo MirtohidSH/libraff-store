@@ -1,22 +1,24 @@
 package org.example.libraffstore.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "authors")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "books")   // books-u çıxart, sonsuz loop olmasın
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)  // yalnız id
 public class Author {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include   // hashCode yalnız id-dən hesablanır
     private Long id;
 
     @Column(nullable = false)
@@ -27,5 +29,4 @@ public class Author {
 
     @ManyToMany(mappedBy = "authors")
     private Set<Book> books = new HashSet<>();
-
 }

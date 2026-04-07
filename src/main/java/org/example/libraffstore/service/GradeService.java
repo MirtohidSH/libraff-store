@@ -28,6 +28,10 @@ public class GradeService {
         LocalDate startDate;
         LocalDate endDate;
 
+        if (gradeStructures == null || gradeStructures.isEmpty()) {  // ← bunu əlavə et
+            return BigDecimal.ZERO;
+        }
+
         switch (gradeStructures.getFirst().getPeriodType()) {
 
             case MONTHLY -> {

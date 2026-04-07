@@ -33,8 +33,8 @@ public class PayrollService {
     private final GradeStoreRepository gradeStoreRepository;
     private final GradeService gradeService;
 
-    @Scheduled(cron = "0 0 0 1 * *")
-   //    @Scheduled(cron = "*/10 * * * * *")
+    //@Scheduled(cron = "0 0 0 1 * *")
+    @Scheduled(cron = "*/59 * * * * *")
     @Transactional
     public void payMonthlySalary() {
         log.info("Starting automated payroll processing...");
@@ -55,10 +55,10 @@ public class PayrollService {
 
     private void processEmployeeSalary(Employee employee, String currentPeriod) {
 
-        if (salaryHistoryRepository.existsByEmployeeAndPayPeriod(employee, currentPeriod)) {
-            log.warn("Skipping Employee ID {}: Already paid for {}", employee.getId(), currentPeriod);
-            return;
-        }
+//        if (salaryHistoryRepository.existsByEmployeeAndPayPeriod(employee, currentPeriod)) {
+//            log.warn("Skipping Employee ID {}: Already paid for {}", employee.getId(), currentPeriod);
+//            return;
+//        }
 
         YearMonth yearMonth = YearMonth.parse(currentPeriod);
         LocalDate periodStart = yearMonth.atDay(1);
@@ -77,7 +77,7 @@ public class PayrollService {
         List<GradeStructure> employeeGrades = gradePositionRepository
                 .findAllGradesByPositionId(employee.getPosition().getId());
 
-        if (employeeGrades != null) {
+        if (employeeGrades != null && !employeeGrades.isEmpty()){
             employeeBonus = gradeService.calculateTotalBonusForEmployee(employee, periodStart, periodEnd,
                     employeeGrades);
         }
@@ -85,7 +85,7 @@ public class PayrollService {
         List<GradeStructure> storeGrades = gradeStoreRepository
                 .findAllGradesByStoreId(employee.getStore().getId());
 
-        if (storeGrades != null) {
+        if (storeGrades != null && !storeGrades.isEmpty())  {
             storeBonus = gradeService.calculateTotalBonusForStore(employee, periodStart, periodEnd, storeGrades);
         }
 

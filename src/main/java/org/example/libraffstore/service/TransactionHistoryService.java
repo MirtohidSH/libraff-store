@@ -24,6 +24,7 @@ public class TransactionHistoryService {
     private final EmployeeRepository employeeRepository;
     private final DiscountService discountService;
 
+
     @Transactional
     public void sellBook(Map<Long, Long> soldBooks, Long storeId, Long employeeId) {
 
@@ -34,7 +35,7 @@ public class TransactionHistoryService {
             Long bookId = entry.getKey();
             Long quantityToSell = entry.getValue();
 
-            StoreBookStock stock = storeBookStockRepository.findByBookIdAndStoreId(bookId, storeId)
+            StoreBookStock stock = storeBookStockRepository.findByBookIdAndStoreIdWithDetails(bookId, storeId)
                     .orElseThrow(() -> new NotFoundException("Kitab bu store-da tapılmadı"));
 
             if (stock.getQuantity() < quantityToSell)
