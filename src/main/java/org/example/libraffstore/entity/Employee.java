@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.libraffstore.exception.AlreadyExistsException;
+import org.example.libraffstore.exception.BusinessException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,4 +59,23 @@ public class Employee {
     @JoinTable(name = "employee_roles", // The name of the bridge table in your SQL
             joinColumns = @JoinColumn(name = "employee_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<RoleEntity> roles = new HashSet<>();
+
+    public void terminate(LocalDate dateUnemployed) {
+        if (Boolean.FALSE.equals(this.isActive)) {
+            throw new BusinessException("İşçi onsuz da deaktivdir.");
+        }
+        this.isActive = false;
+        this.dateUnemployed = dateUnemployed;
+    }
+
+    public void rehire(Store store, Position position, LocalDate dateEmployed) {
+        if (Boolean.TRUE.equals(this.isActive)) {
+            throw new AlreadyExistsException("Bu FIN ilə aktiv işçi artıq mövcuddur: " + this.FIN);
+        }
+        this.store = store;
+        this.position = position;
+        this.isActive = true;
+        this.dateEmployed = dateEmployed;
+        this.dateUnemployed = null;
+    }
 }

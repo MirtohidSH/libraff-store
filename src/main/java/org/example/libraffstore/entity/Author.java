@@ -12,13 +12,13 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = "books")   // books-u çıxart, sonsuz loop olmasın
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)  // yalnız id
+@ToString(exclude = "books")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Author {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include   // hashCode yalnız id-dən hesablanır
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)

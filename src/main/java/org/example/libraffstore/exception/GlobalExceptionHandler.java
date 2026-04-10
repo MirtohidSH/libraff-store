@@ -2,13 +2,14 @@ package org.example.libraffstore.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.libraffstore.dto.response.ErrorResponse;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -16,31 +17,41 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException e) {
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(404, e.getMessage(), LocalDateTime.now()));
+        log.warn("Not found: {}", e.getMessage());
+        return buildResponse(HttpStatus.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(AlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyExistsException(AlreadyExistsException e) {
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(new ErrorResponse(409, e.getMessage(), LocalDateTime.now()));
+        log.warn("Already exists: {}", e.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException e) {
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(400, e.getMessage(), LocalDateTime.now()));
+        log.warn("Business error: {}", e.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors()
+                .stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        log.warn("Validation error: {}", message);
+        return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("Unexpected error: ", e);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Gözlənilməz xəta baş verdi.");
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message) {
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(500, e.getMessage(), LocalDateTime.now()));
+                .status(status)
+                .body(new ErrorResponse(status.value(), message, LocalDateTime.now()));
     }
 }
