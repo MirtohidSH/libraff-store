@@ -5,33 +5,29 @@ import org.example.libraffstore.dto.response.BookListResponse;
 import org.example.libraffstore.dto.response.BookSingleResponse;
 import org.example.libraffstore.entity.Book;
 import org.example.libraffstore.repository.BookRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
-@RequiredArgsConstructor
 @Service
+@RequiredArgsConstructor
 public class BookService {
 
     private final BookRepository bookRepository;
-    private final ModelMapper modelMapper;
 
     public BookListResponse findAll() {
-        List<Book> books = bookRepository.findAll();
-        List<BookSingleResponse> responseList = new ArrayList<BookSingleResponse>();
+        List<BookSingleResponse> books = bookRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
 
-        for (Book book : books) {
-            BookSingleResponse response = new BookSingleResponse();
-            modelMapper.map(book, response);
-            responseList.add(response);
-        }
-
-        BookListResponse listResponse = new BookListResponse();
-        listResponse.setBooks(responseList);
-        return listResponse;
+        return new BookListResponse(books);
     }
 
-
+    private BookSingleResponse toResponse(Book book) {
+        BookSingleResponse response = new BookSingleResponse();
+        response.setId(Math.toIntExact(book.getId()));
+        response.setName(book.getName());
+        return response;
+    }
 }

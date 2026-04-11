@@ -1,18 +1,20 @@
 package org.example.libraffstore.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.libraffstore.entity.Employee;
 import org.example.libraffstore.entity.StoreBookStock;
 import org.example.libraffstore.entity.TransactionHistory;
 import org.example.libraffstore.exception.BusinessException;
 import org.example.libraffstore.exception.NotFoundException;
-import org.example.libraffstore.repository.StoreBookStockRepository;
 import org.example.libraffstore.repository.EmployeeRepository;
+import org.example.libraffstore.repository.StoreBookStockRepository;
 import org.example.libraffstore.repository.TransactionHistoryRepository;
+import org.example.libraffstore.service.helper.DiscountPriceCalculator;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Map;
 
 @Service
@@ -22,40 +24,55 @@ public class TransactionHistoryService {
     private final StoreBookStockRepository storeBookStockRepository;
     private final TransactionHistoryRepository historyRepository;
     private final EmployeeRepository employeeRepository;
-    private final DiscountService discountService;
-
+    private final DiscountPriceCalculator discountPriceCalculator;
 
     @Transactional
     public void sellBook(Map<Long, Long> soldBooks, Long storeId, Long employeeId) {
+        if (soldBooks == null || soldBooks.isEmpty())
+            throw new BusinessException("Satış üçün kitab göndərilməyib.");
 
-        Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new NotFoundException("İşçi tapılmadı"));
+        Employee employee = getEmployee(employeeId);
 
-        for (Map.Entry<Long, Long> entry : soldBooks.entrySet()) {
-            Long bookId = entry.getKey();
-            Long quantityToSell = entry.getValue();
+        soldBooks.forEach((bookId, quantity) ->
+                processSale(bookId, Math.toIntExact(quantity), storeId, employee));
+    }
 
-            StoreBookStock stock = storeBookStockRepository.findByBookIdAndStoreIdWithDetails(bookId, storeId)
-                    .orElseThrow(() -> new NotFoundException("Kitab bu store-da tapılmadı"));
+    private void processSale(Long bookId, int quantity, Long storeId, Employee employee) {
+        StoreBookStock stock = storeBookStockRepository
+                .findByBookIdAndStoreIdWithDetails(bookId, storeId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Kitab bu mağazada tapılmadı. Book ID: " + bookId));
 
-            if (stock.getQuantity() < quantityToSell)
-                throw new BusinessException("Stokda kifayət qədər kitab yoxdur: " + stock.getBook().getName());
+        validateStock(stock, quantity);
+        stock.setQuantity(stock.getQuantity() - quantity);  // dirty checking — save() lazım deyil
 
-            stock.setQuantity((int) (stock.getQuantity() - quantityToSell));
-            storeBookStockRepository.save(stock);
+        BigDecimal finalPrice = discountPriceCalculator.calculate(stock.getBook(), storeId);  // düzəldildi
 
-            BigDecimal finalPrice = discountService.calculateDiscountedPrice(stock.getBook(), storeId);
+        historyRepository.save(buildHistory(stock, quantity, finalPrice, employee));
+    }
 
-            TransactionHistory history = new TransactionHistory();
-            history.setBook(stock.getBook());
-            history.setQuantity(Math.toIntExact(quantityToSell));
-            history.setSalesPrice(finalPrice);
-            history.setPurchasePrice(stock.getBook().getPurchasePrice());
-            history.setStore(stock.getStore());
-            history.setTransactionDate(java.time.LocalDate.now());
-            history.setEmployee(employee);
+    private void validateStock(StoreBookStock stock, int quantityToSell) {
+        if (stock.getQuantity() < quantityToSell)
+            throw new BusinessException(String.format(
+                    "Stokda kifayət qədər kitab yoxdur: %s. Mövcud: %d, İstənilən: %d",
+                    stock.getBook().getName(), stock.getQuantity(), quantityToSell));
+    }
 
-            historyRepository.save(history);
-        }
+    private TransactionHistory buildHistory(StoreBookStock stock, int quantity,
+                                            BigDecimal finalPrice, Employee employee) {
+        TransactionHistory history = new TransactionHistory();
+        history.setBook(stock.getBook());
+        history.setQuantity(quantity);
+        history.setSalesPrice(finalPrice);
+        history.setPurchasePrice(stock.getBook().getPurchasePrice());
+        history.setStore(stock.getStore());
+        history.setTransactionDate(LocalDate.now());
+        history.setEmployee(employee);
+        return history;
+    }
+
+    private Employee getEmployee(Long id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("İşçi tapılmadı. ID: " + id));
     }
 }

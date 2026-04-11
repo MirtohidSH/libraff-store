@@ -2,17 +2,12 @@ package org.example.libraffstore.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.libraffstore.dto.response.GradeHistoryResponse;
-import org.example.libraffstore.entity.Employee;
 import org.example.libraffstore.entity.GradeHistory;
-import org.example.libraffstore.entity.GradeStructure;
 import org.example.libraffstore.repository.GradeHistoryRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,16 +15,38 @@ public class GradeHistoryService {
 
     private final GradeHistoryRepository gradeHistoryRepository;
 
-    private final ModelMapper modelMapper;
-
+    @Transactional
     public List<GradeHistoryResponse> findAll() {
         return gradeHistoryRepository.findAllWithDetails()
                 .stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private GradeHistoryResponse toResponse(GradeHistory gh) {
-        return modelMapper.map(gh, GradeHistoryResponse.class);
+        GradeHistoryResponse response = new GradeHistoryResponse();
+        response.setId(gh.getId());
+        response.setAchievedSales(gh.getAchievedSales());
+        response.setCalculatedGradeAmount(gh.getCalculatedGradeAmount());
+        response.setPeriodStart(gh.getPeriodStart());
+        response.setPeriodEnd(gh.getPeriodEnd());
+
+        if (gh.getEmployee() != null)
+            response.setEmployeeFullName(
+                    gh.getEmployee().getFirstName() + " " + gh.getEmployee().getLastName());
+
+        if (gh.getGradeStructure() != null) {
+            response.setGradeName(gh.getGradeStructure().getGradeName());
+            response.setAppliedThreshold(gh.getGradeStructure().getMinThreshold());
+            response.setPeriodType(gh.getGradeStructure().getPeriodType().name());
+        }
+
+        if (gh.getPosition() != null)
+            response.setPositionType(gh.getPosition().getPositionType().name());
+
+        if (gh.getStore() != null)
+            response.setStoreName(gh.getStore().getName());
+
+        return response;
     }
 }

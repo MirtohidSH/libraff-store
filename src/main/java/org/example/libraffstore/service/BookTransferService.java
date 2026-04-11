@@ -26,50 +26,20 @@ public class BookTransferService {
     private final EmployeeRepository employeeRepository;
     private final StoreBookStockRepository storeBookStockRepository;
 
-    //İşçi sorğu yaradır
     @Transactional
     public BookTransferResponse createTransferRequest(BookTransferRequest request) {
 
-        Book book = bookRepository.findById(request.getBookId())
-                .orElseThrow(() -> new NotFoundException("Kitab tapılmadı. ID: " + request.getBookId()));
+        Book book = getBook(request.getBookId());
+        Store fromStore = getStore(request.getFromStoreId());
+        Store toStore = getStore(request.getToStoreId());
+        Employee requestedEmployee = getEmployee(request.getRequestedEmployeeId());
 
-        Store fromStore = storeRepository.findById(request.getFromStoreId())
-                .orElseThrow(() -> new NotFoundException("Mağaza tapılmadı. ID: " + request.getFromStoreId()));
+        validateDifferentStores(fromStore, toStore);
+        validateStockAvailability(book, fromStore, request.getQuantity());
 
-        Store toStore = storeRepository.findById(request.getToStoreId())
-                .orElseThrow(() -> new NotFoundException("Mağaza tapılmadı. ID: " + request.getToStoreId()));
-
-        Employee requestedEmployee = employeeRepository.findById(request.getRequestedEmployeeId())
-                .orElseThrow(() -> new NotFoundException("İşçi tapılmadı. ID: " + request.getRequestedEmployeeId()));
-
-        // Eyni mağazaya transfer olmaz
-        if (fromStore.getId().equals(toStore.getId()))
-            throw new BusinessException("Kitab eyni mağazaya transfer edilə bilməz.");
-
-        // fromStore-da bu kitabın stoku varmı və kifayət qədərmi
-        StoreBookStock stock = storeBookStockRepository
-                .findByBookIdAndStoreId(book.getId(), fromStore.getId())
-                .orElseThrow(() -> new NotFoundException(
-                        fromStore.getName() + " mağazasında bu kitab tapılmadı: " + book.getName()));
-
-        if (stock.getQuantity() < request.getQuantity())
-            throw new BusinessException(String.format(
-                    "%s mağazasında yalnız %d ədəd %s var. İstənilən: %d",
-                    fromStore.getName(), stock.getQuantity(), book.getName(), request.getQuantity()));
-
-        // Sorğu yarat
-        BookTransfer transfer = new BookTransfer();
-        transfer.setBook(book);
-        transfer.setFromStore(fromStore);
-        transfer.setToStore(toStore);
-        transfer.setRequestedEmployee(requestedEmployee);
-        transfer.setQuantity(request.getQuantity());
-        transfer.setRequestedAt(LocalDateTime.now());
-        transfer.setTransferStatus(TransferStatus.PENDING);
-
-        return toResponse(bookTransferRepository.save(transfer));
+        return toResponse(bookTransferRepository.save(
+                buildTransfer(book, fromStore, toStore, requestedEmployee, request.getQuantity())));
     }
-
 
     public List<BookTransferResponse> getPendingTransfers() {
         return bookTransferRepository.findByTransferStatus(TransferStatus.PENDING)
@@ -78,20 +48,12 @@ public class BookTransferService {
                 .toList();
     }
 
+    @Transactional
     public List<StoreBookStockResponse> getAvailableStocks(Long bookId) {
-        bookRepository.findById(bookId)
-                .orElseThrow(() -> new NotFoundException("Kitab tapılmadı. ID: " + bookId));
-
+        getBook(bookId);
         return storeBookStockRepository.findByBookId(bookId)
                 .stream()
-                .map(stock -> {
-                    StoreBookStockResponse response = new StoreBookStockResponse();
-                    response.setStoreId(stock.getStore().getId());
-                    response.setStoreName(stock.getStore().getName());
-                    response.setBookName(stock.getBook().getName());
-                    response.setQuantity(stock.getQuantity());
-                    return response;
-                })
+                .map(this::toStockResponse)
                 .toList();
     }
 
@@ -99,39 +61,12 @@ public class BookTransferService {
     public BookTransferResponse approveTransfer(Long transferId, Long managerId) {
 
         BookTransfer transfer = getTransferOrThrow(transferId);
-
         validatePending(transfer);
-        validateManager(managerId);
 
-        Employee manager = employeeRepository.findById(managerId)
-                .orElseThrow(() -> new NotFoundException("Müdür tapılmadı. ID: " + managerId));
+        Employee manager = getAndValidateManager(managerId);
 
-        // fromStore stokunu azalt
-        StoreBookStock fromStock = storeBookStockRepository
-                .findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getFromStore().getId())
-                .orElseThrow(() -> new NotFoundException("Stok tapılmadı."));
+        updateStock(transfer);
 
-        if (fromStock.getQuantity() < transfer.getQuantity())
-            throw new BusinessException("Stokda kifayət qədər kitab yoxdur. Mövcud: " + fromStock.getQuantity());
-
-        fromStock.setQuantity(fromStock.getQuantity() - transfer.getQuantity());
-        storeBookStockRepository.save(fromStock);
-
-        // toStore stokunu artır (yoxdursa yarat)
-        StoreBookStock toStock = storeBookStockRepository
-                .findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getToStore().getId())
-                .orElseGet(() -> {
-                    StoreBookStock newStock = new StoreBookStock();
-                    newStock.setBook(transfer.getBook());
-                    newStock.setStore(transfer.getToStore());
-                    newStock.setQuantity(0);
-                    return newStock;
-                });
-
-        toStock.setQuantity(toStock.getQuantity() + transfer.getQuantity());
-        storeBookStockRepository.save(toStock);
-
-        // Transfer yenilə
         transfer.setApprovedEmployee(manager);
         transfer.setApprovedAt(LocalDateTime.now());
         transfer.setCompletedAt(LocalDateTime.now());
@@ -144,12 +79,9 @@ public class BookTransferService {
     public BookTransferResponse rejectTransfer(Long transferId, Long managerId) {
 
         BookTransfer transfer = getTransferOrThrow(transferId);
-
         validatePending(transfer);
-        validateManager(managerId);
 
-        Employee manager = employeeRepository.findById(managerId)
-                .orElseThrow(() -> new NotFoundException("Müdür tapılmadı. ID: " + managerId));
+        Employee manager = getAndValidateManager(managerId);
 
         transfer.setApprovedEmployee(manager);
         transfer.setApprovedAt(LocalDateTime.now());
@@ -158,9 +90,37 @@ public class BookTransferService {
         return toResponse(bookTransferRepository.save(transfer));
     }
 
-    private BookTransfer getTransferOrThrow(Long transferId) {
-        return bookTransferRepository.findById(transferId)
-                .orElseThrow(() -> new NotFoundException("Transfer tapılmadı. ID: " + transferId));
+    private void updateStock(BookTransfer transfer) {
+        StoreBookStock fromStock = storeBookStockRepository.findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getFromStore().getId())
+                .orElseThrow(() -> new NotFoundException("Stok tapılmadı."));
+
+        if (fromStock.getQuantity() < transfer.getQuantity())
+            throw new BusinessException("Stokda kifayət qədər kitab yoxdur. Mövcud: " + fromStock.getQuantity());
+
+        fromStock.setQuantity(fromStock.getQuantity() - transfer.getQuantity());
+        storeBookStockRepository.save(fromStock);
+
+        StoreBookStock toStock = storeBookStockRepository
+                .findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getToStore().getId())
+                .orElseGet(() -> buildNewStock(transfer.getBook(), transfer.getToStore()));
+
+        toStock.setQuantity(toStock.getQuantity() + transfer.getQuantity());
+        storeBookStockRepository.save(toStock);
+    }
+
+    private void validateDifferentStores(Store fromStore, Store toStore) {
+        if (fromStore.getId().equals(toStore.getId()))
+            throw new BusinessException("Kitab eyni mağazaya transfer edilə bilməz.");
+    }
+
+    private void validateStockAvailability(Book book, Store fromStore, Integer quantity) {
+        StoreBookStock stock = storeBookStockRepository
+                .findByBookIdAndStoreId(book.getId(), fromStore.getId())
+                .orElseThrow(() -> new NotFoundException(fromStore.getName() + " mağazasında bu kitab tapılmadı: " + book.getName()));
+
+        if (stock.getQuantity() < quantity)
+            throw new BusinessException(String.format("%s mağazasında yalnız %d ədəd %s var. İstənilən: %d",
+                    fromStore.getName(), stock.getQuantity(), book.getName(), quantity));
     }
 
     private void validatePending(BookTransfer transfer) {
@@ -168,12 +128,31 @@ public class BookTransferService {
             throw new BusinessException("Bu sorğu artıq " + transfer.getTransferStatus() + " statusundadır.");
     }
 
-    private void validateManager(Long managerId) {
-        Employee manager = employeeRepository.findById(managerId)
-                .orElseThrow(() -> new NotFoundException("Müdür tapılmadı. ID: " + managerId));
-
+    private Employee getAndValidateManager(Long managerId) {
+        Employee manager = getEmployee(managerId);
         if (manager.getPosition().getPositionType() != PositionType.MANAGER)
             throw new BusinessException("Yalnız müdür transfer sorğusunu təsdiqləyə/rəd edə bilər.");
+        return manager;
+    }
+
+    private BookTransfer buildTransfer(Book book, Store fromStore, Store toStore, Employee requestedEmployee, Integer quantity) {
+        BookTransfer transfer = new BookTransfer();
+        transfer.setBook(book);
+        transfer.setFromStore(fromStore);
+        transfer.setToStore(toStore);
+        transfer.setRequestedEmployee(requestedEmployee);
+        transfer.setQuantity(quantity);
+        transfer.setRequestedAt(LocalDateTime.now());
+        transfer.setTransferStatus(TransferStatus.PENDING);
+        return transfer;
+    }
+
+    private StoreBookStock buildNewStock(Book book, Store store) {
+        StoreBookStock stock = new StoreBookStock();
+        stock.setBook(book);
+        stock.setStore(store);
+        stock.setQuantity(0);
+        return stock;
     }
 
     private BookTransferResponse toResponse(BookTransfer transfer) {
@@ -182,13 +161,9 @@ public class BookTransferService {
         response.setBookName(transfer.getBook().getName());
         response.setFromStore(transfer.getFromStore().getName());
         response.setToStore(transfer.getToStore().getName());
-        response.setRequestedEmployee(
-                transfer.getRequestedEmployee().getFirstName() + " " +
-                        transfer.getRequestedEmployee().getLastName());
+        response.setRequestedEmployee(transfer.getRequestedEmployee().getFirstName() + " " + transfer.getRequestedEmployee().getLastName());
         if (transfer.getApprovedEmployee() != null) {
-            response.setApprovedEmployee(
-                    transfer.getApprovedEmployee().getFirstName() + " " +
-                            transfer.getApprovedEmployee().getLastName());
+            response.setApprovedEmployee(transfer.getApprovedEmployee().getFirstName() + " " + transfer.getApprovedEmployee().getLastName());
         }
         response.setQuantity(transfer.getQuantity());
         response.setRequestedAt(transfer.getRequestedAt());
@@ -196,5 +171,34 @@ public class BookTransferService {
         response.setCompletedAt(transfer.getCompletedAt());
         response.setTransferStatus(transfer.getTransferStatus());
         return response;
+    }
+
+    private StoreBookStockResponse toStockResponse(StoreBookStock stock) {
+        StoreBookStockResponse response = new StoreBookStockResponse();
+        response.setStoreId(stock.getStore().getId());
+        response.setStoreName(stock.getStore().getName());
+        response.setBookName(stock.getBook().getName());
+        response.setQuantity(stock.getQuantity());
+        return response;
+    }
+
+    private BookTransfer getTransferOrThrow(Long transferId) {
+        return bookTransferRepository.findById(transferId)
+                .orElseThrow(() -> new NotFoundException("Transfer tapılmadı. ID: " + transferId));
+    }
+
+    private Book getBook(Long id) {
+        return bookRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Kitab tapılmadı. ID: " + id));
+    }
+
+    private Store getStore(Long id) {
+        return storeRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Mağaza tapılmadı. ID: " + id));
+    }
+
+    private Employee getEmployee(Long id) {
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("İşçi tapılmadı. ID: " + id));
     }
 }
