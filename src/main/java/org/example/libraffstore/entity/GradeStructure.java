@@ -21,12 +21,6 @@ public class GradeStructure {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal minSales;
-
-    @Column(precision = 10, scale = 2)
-    private BigDecimal maxSales;
-
     @Column(precision = 5, scale = 2)
     private BigDecimal bonusPercentage;
 

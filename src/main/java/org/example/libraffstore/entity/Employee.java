@@ -1,9 +1,7 @@
 package org.example.libraffstore.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.example.libraffstore.exception.AlreadyExistsException;
 import org.example.libraffstore.exception.BusinessException;
 
@@ -14,13 +12,17 @@ import java.util.Set;
 
 @Entity
 @Table(name = "employees")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"store", "position", "roles"})
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -36,15 +38,10 @@ public class Employee {
     private String password;
 
     private Boolean isActive = false;
-
     private String email;
-
     private String phone;
-
     private BigDecimal salary;
-
     private LocalDate dateEmployed;
-
     private LocalDate dateUnemployed;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,8 +53,9 @@ public class Employee {
     private Position position;
 
     @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "employee_roles", // The name of the bridge table in your SQL
-            joinColumns = @JoinColumn(name = "employee_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @JoinTable(name = "employee_roles",
+            joinColumns = @JoinColumn(name = "employee_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<RoleEntity> roles = new HashSet<>();
 
     public void terminate(LocalDate dateUnemployed) {

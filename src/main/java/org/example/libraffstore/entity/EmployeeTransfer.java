@@ -31,9 +31,9 @@ public class EmployeeTransfer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "from_store_id", nullable = false)
-    private Store fromStoreId;
+    private Store fromStore;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "to_store_id", nullable = false)
-    private Store toStoreId;
+    private Store toStore;
 }

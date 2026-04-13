@@ -1,9 +1,7 @@
 package org.example.libraffstore.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,13 +10,17 @@ import java.util.Set;
 
 @Entity
 @Table(name = "books")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = "authors")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Book {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
@@ -33,9 +35,7 @@ public class Book {
     private BigDecimal salesPrice;
 
     private LocalDate purchaseDate;
-
     private LocalDate salesDate;
-
     private Integer publicationAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
