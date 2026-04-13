@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class BookSingleResponse {
 
-    private Integer id;
+    private Long id;
 
     private String name;
 }
