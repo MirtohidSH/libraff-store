@@ -7,6 +7,8 @@ services:
       DB_URL: jdbc:postgresql://libraff-db:5432/libraff-db
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      JWT_SECRET: ${JWT_SECRET}          # .env faylından oxuyur
+      SPRING_PROFILES_ACTIVE: prod
     depends_on:
       libraff-db:
         condition: service_healthy
