@@ -109,7 +109,7 @@ public class EmployeeService {
                 saved.getDateEmployed(), HistoryType.HIRED
         );
 
-        return employeeMapper.toResponse(saved);
+        return employeeMapper.toResponse(getEmployee(saved.getId()));
     }
 
     private EmployeeResponse processRehire(Employee employee, EmployeeRequest request, Store store, Position position) {
@@ -129,7 +129,7 @@ public class EmployeeService {
                 saved.getDateEmployed(), HistoryType.REHIRED
         );
 
-        return employeeMapper.toResponse(saved);
+        return employeeMapper.toResponse(getEmployee(saved.getId()));
     }
 
     private void updatePasswordIfProvided(Employee employee, String rawPassword) {
@@ -139,7 +139,7 @@ public class EmployeeService {
     }
 
     private Employee getEmployee(Long id) {
-        return employeeRepository.findById(id)
+        return employeeRepository.findWithDetailsById(id)
                 .orElseThrow(() -> new NotFoundException("İşçi tapılmadı. ID: " + id));
     }
 

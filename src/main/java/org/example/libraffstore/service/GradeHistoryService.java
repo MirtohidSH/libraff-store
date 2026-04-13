@@ -3,6 +3,7 @@ package org.example.libraffstore.service;
 import lombok.RequiredArgsConstructor;
 import org.example.libraffstore.dto.response.GradeHistoryResponse;
 import org.example.libraffstore.entity.GradeHistory;
+import org.example.libraffstore.mapper.GradeHistoryMapper;
 import org.example.libraffstore.repository.GradeHistoryRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,12 +15,13 @@ import java.util.List;
 public class GradeHistoryService {
 
     private final GradeHistoryRepository gradeHistoryRepository;
+    private final GradeHistoryMapper gradeHistoryMapper;
 
     @Transactional
     public List<GradeHistoryResponse> findAll() {
-        return gradeHistoryRepository.findAllWithDetails()
+        return gradeHistoryRepository.findAll()
                 .stream()
-                .map(this::toResponse)
+                .map(gradeHistoryMapper::toResponse)
                 .toList();
     }
 

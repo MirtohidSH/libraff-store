@@ -1,8 +1,8 @@
 package org.example.libraffstore.service;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.libraffstore.dto.BonusResult;
 import org.example.libraffstore.entity.Employee;
 import org.example.libraffstore.entity.GradeStructure;
 import org.example.libraffstore.entity.SalaryHistory;
@@ -12,6 +12,7 @@ import org.example.libraffstore.repository.GradeStoreRepository;
 import org.example.libraffstore.repository.SalaryHistoryRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,27 +35,23 @@ public class PayrollService {
     private final GradeService gradeService;
 
     @Scheduled(cron = "0 0 0 1 * *")
-    //@Scheduled(cron = "*/59 * * * * *")
     @Transactional
     public void payMonthlySalary() {
         log.info("Starting automated payroll processing...");
-        String currentPeriod = java.time.YearMonth.now().minusMonths(1).toString();
+        String currentPeriod = YearMonth.now().minusMonths(1).toString();
 
-        List<Employee> employees = employeeRepository.findAllByIsActiveTrue();
-
-        for (Employee employee : employees) {
+        employeeRepository.findAllByIsActiveTrue().forEach(employee -> {
             try {
                 processEmployeeSalary(employee, currentPeriod);
             } catch (Exception e) {
                 log.error("Failed to pay Employee {}: {}", employee.getFirstName(), e.getMessage());
             }
-        }
+        });
 
         log.info("Payroll processing completed for period: {}", currentPeriod);
     }
 
     private void processEmployeeSalary(Employee employee, String currentPeriod) {
-
         if (salaryHistoryRepository.existsByEmployeeAndPayPeriod(employee, currentPeriod)) {
             log.warn("Skipping Employee ID {}: Already paid for {}", employee.getId(), currentPeriod);
             return;
@@ -62,61 +59,52 @@ public class PayrollService {
 
         YearMonth yearMonth = YearMonth.parse(currentPeriod);
         LocalDate periodStart = yearMonth.atDay(1);
-        LocalDate periodEnd = yearMonth.atEndOfMonth();
+        LocalDate periodEnd   = yearMonth.atEndOfMonth();
 
         if (employee.getDateEmployed().isAfter(periodEnd)) {
-            log.warn("Skipping Employee ID {}: Employeed after current month {}", employee.getId(), currentPeriod);
+            log.warn("Skipping Employee ID {}: Hired after period {}", employee.getId(), currentPeriod);
             return;
         }
 
         BigDecimal salaryAmount = calculateSalary(employee, periodStart, periodEnd);
 
-        BigDecimal employeeBonus = BigDecimal.ZERO;
-        BigDecimal storeBonus = BigDecimal.ZERO;
-
         List<GradeStructure> employeeGrades = gradePositionRepository
                 .findAllGradesByPositionId(employee.getPosition().getId());
-
-        if (employeeGrades != null && !employeeGrades.isEmpty()){
-            employeeBonus = gradeService.calculateTotalBonusForEmployee(employee, periodStart, periodEnd,
-                    employeeGrades);
-        }
 
         List<GradeStructure> storeGrades = gradeStoreRepository
                 .findAllGradesByStoreId(employee.getStore().getId());
 
-        if (storeGrades != null && !storeGrades.isEmpty())  {
-            storeBonus = gradeService.calculateTotalBonusForStore(employee, periodStart, periodEnd, storeGrades);
-        }
+        BonusResult employeeBonus = gradeService.calculateTotalBonusForEmployee(
+                employee, periodEnd, employeeGrades);
 
-        BigDecimal totalBonus = employeeBonus.add(storeBonus);
+        BonusResult storeBonus = gradeService.calculateTotalBonusForStore(
+                employee, periodEnd, storeGrades);
 
-        GradeStructure bestGrade = employeeGrades != null && !employeeGrades.isEmpty()
-                ? employeeGrades.stream()
-                .filter(g -> g.getMinThreshold() != null)
-                .max(Comparator.comparing(GradeStructure::getMinThreshold))
-                .orElse(null)
-                : null;
+        BigDecimal totalBonus = employeeBonus.bonusAmount().add(storeBonus.bonusAmount());
 
-        if (bestGrade != null) {
-            gradeService.saveGradeHistory(totalBonus, bestGrade, employee, periodStart, periodEnd);
+        if (!employeeGrades.isEmpty() && totalBonus.compareTo(BigDecimal.ZERO) > 0) {
+            employeeGrades.stream()
+                    .filter(g -> g.getMinThreshold() != null)
+                    .max(Comparator.comparing(GradeStructure::getMinThreshold))
+                    .ifPresent(bestGrade -> gradeService.saveGradeHistory(
+                            employeeBonus.achievedSales(),
+                            totalBonus,
+                            bestGrade, employee, periodStart, periodEnd));
         }
 
         saveSalaryHistory(employee, salaryAmount, totalBonus, currentPeriod);
         log.info("Successfully processed salary for Employee: {}", employee.getFirstName());
     }
 
-    private BigDecimal calculateSalary(Employee employee, LocalDate startOfMonth, LocalDate periodEnd) {
-
+    private BigDecimal calculateSalary(Employee employee, LocalDate periodStart, LocalDate periodEnd) {
         LocalDate hireDate = employee.getDateEmployed();
 
-        if (!hireDate.isAfter(startOfMonth)) { // alternative: hireDate.getDayOfMonth() == 1
+        if (!hireDate.isAfter(periodStart)) {
             return employee.getSalary();
         }
 
-        LocalDate endOfMonth = hireDate.with(TemporalAdjusters.lastDayOfMonth());
-        long daysWorked = ChronoUnit.DAYS.between(hireDate, endOfMonth) + 1;
-        int totalDaysInMonth = startOfMonth.lengthOfMonth();
+        long daysWorked = ChronoUnit.DAYS.between(hireDate, periodEnd) + 1;
+        int totalDaysInMonth = periodStart.lengthOfMonth();
 
         return employee.getSalary()
                 .divide(BigDecimal.valueOf(totalDaysInMonth), 10, RoundingMode.HALF_UP)
@@ -125,9 +113,7 @@ public class PayrollService {
     }
 
     private void saveSalaryHistory(Employee employee, BigDecimal salaryAmount, BigDecimal totalBonus, String currentPeriod) {
-
         SalaryHistory salaryHistory = new SalaryHistory();
-
         salaryHistory.setEmployee(employee);
         salaryHistory.setSalaryAmount(salaryAmount);
         salaryHistory.setBonusAmount(totalBonus);

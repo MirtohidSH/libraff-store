@@ -9,6 +9,7 @@ import org.example.libraffstore.enums.PositionType;
 import org.example.libraffstore.enums.TransferStatus;
 import org.example.libraffstore.exception.BusinessException;
 import org.example.libraffstore.exception.NotFoundException;
+import org.example.libraffstore.mapper.BookTransferMapper;
 import org.example.libraffstore.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,60 +25,54 @@ public class BookTransferService {
     private final BookRepository bookRepository;
     private final StoreRepository storeRepository;
     private final EmployeeRepository employeeRepository;
-    private final StoreBookStockRepository storeBookStockRepository;
+    private final BookStockService bookStockService;
+    private final BookTransferMapper bookTransferMapper;
 
     @Transactional
     public BookTransferResponse createTransferRequest(BookTransferRequest request) {
-
         Book book = getBook(request.getBookId());
         Store fromStore = getStore(request.getFromStoreId());
         Store toStore = getStore(request.getToStoreId());
         Employee requestedEmployee = getEmployee(request.getRequestedEmployeeId());
 
         validateDifferentStores(fromStore, toStore);
-        validateStockAvailability(book, fromStore, request.getQuantity());
+        bookStockService.validateStockAvailability(book, fromStore, request.getQuantity());
 
-        return toResponse(bookTransferRepository.save(
-                buildTransfer(book, fromStore, toStore, requestedEmployee, request.getQuantity())));
+        BookTransfer transfer = buildTransfer(book, fromStore, toStore, requestedEmployee, request.getQuantity());
+        return bookTransferMapper.toResponse(bookTransferRepository.save(transfer));
     }
 
+    @Transactional(readOnly = true)
     public List<BookTransferResponse> getPendingTransfers() {
         return bookTransferRepository.findByTransferStatus(TransferStatus.PENDING)
                 .stream()
-                .map(this::toResponse)
+                .map(bookTransferMapper::toResponse)
                 .toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<StoreBookStockResponse> getAvailableStocks(Long bookId) {
-        getBook(bookId);
-        return storeBookStockRepository.findByBookId(bookId)
-                .stream()
-                .map(this::toStockResponse)
-                .toList();
+        return bookStockService.getAvailableStocks(bookId);
     }
 
     @Transactional
     public BookTransferResponse approveTransfer(Long transferId, Long managerId) {
-
         BookTransfer transfer = getTransferOrThrow(transferId);
         validatePending(transfer);
 
         Employee manager = getAndValidateManager(managerId);
-
-        updateStock(transfer);
+        bookStockService.updateStock(transfer);
 
         transfer.setApprovedEmployee(manager);
         transfer.setApprovedAt(LocalDateTime.now());
         transfer.setCompletedAt(LocalDateTime.now());
         transfer.setTransferStatus(TransferStatus.COMPLETED);
 
-        return toResponse(bookTransferRepository.save(transfer));
+        return bookTransferMapper.toResponse(bookTransferRepository.save(transfer));
     }
 
     @Transactional
     public BookTransferResponse rejectTransfer(Long transferId, Long managerId) {
-
         BookTransfer transfer = getTransferOrThrow(transferId);
         validatePending(transfer);
 
@@ -87,40 +82,12 @@ public class BookTransferService {
         transfer.setApprovedAt(LocalDateTime.now());
         transfer.setTransferStatus(TransferStatus.REJECTED);
 
-        return toResponse(bookTransferRepository.save(transfer));
-    }
-
-    private void updateStock(BookTransfer transfer) {
-        StoreBookStock fromStock = storeBookStockRepository.findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getFromStore().getId())
-                .orElseThrow(() -> new NotFoundException("Stok tapılmadı."));
-
-        if (fromStock.getQuantity() < transfer.getQuantity())
-            throw new BusinessException("Stokda kifayət qədər kitab yoxdur. Mövcud: " + fromStock.getQuantity());
-
-        fromStock.setQuantity(fromStock.getQuantity() - transfer.getQuantity());
-        storeBookStockRepository.save(fromStock);
-
-        StoreBookStock toStock = storeBookStockRepository
-                .findByBookIdAndStoreId(transfer.getBook().getId(), transfer.getToStore().getId())
-                .orElseGet(() -> buildNewStock(transfer.getBook(), transfer.getToStore()));
-
-        toStock.setQuantity(toStock.getQuantity() + transfer.getQuantity());
-        storeBookStockRepository.save(toStock);
+        return bookTransferMapper.toResponse(bookTransferRepository.save(transfer));
     }
 
     private void validateDifferentStores(Store fromStore, Store toStore) {
         if (fromStore.getId().equals(toStore.getId()))
             throw new BusinessException("Kitab eyni mağazaya transfer edilə bilməz.");
-    }
-
-    private void validateStockAvailability(Book book, Store fromStore, Integer quantity) {
-        StoreBookStock stock = storeBookStockRepository
-                .findByBookIdAndStoreId(book.getId(), fromStore.getId())
-                .orElseThrow(() -> new NotFoundException(fromStore.getName() + " mağazasında bu kitab tapılmadı: " + book.getName()));
-
-        if (stock.getQuantity() < quantity)
-            throw new BusinessException(String.format("%s mağazasında yalnız %d ədəd %s var. İstənilən: %d",
-                    fromStore.getName(), stock.getQuantity(), book.getName(), quantity));
     }
 
     private void validatePending(BookTransfer transfer) {
@@ -136,50 +103,15 @@ public class BookTransferService {
     }
 
     private BookTransfer buildTransfer(Book book, Store fromStore, Store toStore, Employee requestedEmployee, Integer quantity) {
-        BookTransfer transfer = new BookTransfer();
-        transfer.setBook(book);
-        transfer.setFromStore(fromStore);
-        transfer.setToStore(toStore);
-        transfer.setRequestedEmployee(requestedEmployee);
-        transfer.setQuantity(quantity);
-        transfer.setRequestedAt(LocalDateTime.now());
-        transfer.setTransferStatus(TransferStatus.PENDING);
-        return transfer;
-    }
-
-    private StoreBookStock buildNewStock(Book book, Store store) {
-        StoreBookStock stock = new StoreBookStock();
-        stock.setBook(book);
-        stock.setStore(store);
-        stock.setQuantity(0);
-        return stock;
-    }
-
-    private BookTransferResponse toResponse(BookTransfer transfer) {
-        BookTransferResponse response = new BookTransferResponse();
-        response.setId(transfer.getId());
-        response.setBookName(transfer.getBook().getName());
-        response.setFromStore(transfer.getFromStore().getName());
-        response.setToStore(transfer.getToStore().getName());
-        response.setRequestedEmployee(transfer.getRequestedEmployee().getFirstName() + " " + transfer.getRequestedEmployee().getLastName());
-        if (transfer.getApprovedEmployee() != null) {
-            response.setApprovedEmployee(transfer.getApprovedEmployee().getFirstName() + " " + transfer.getApprovedEmployee().getLastName());
-        }
-        response.setQuantity(transfer.getQuantity());
-        response.setRequestedAt(transfer.getRequestedAt());
-        response.setApprovedAt(transfer.getApprovedAt());
-        response.setCompletedAt(transfer.getCompletedAt());
-        response.setTransferStatus(transfer.getTransferStatus());
-        return response;
-    }
-
-    private StoreBookStockResponse toStockResponse(StoreBookStock stock) {
-        StoreBookStockResponse response = new StoreBookStockResponse();
-        response.setStoreId(stock.getStore().getId());
-        response.setStoreName(stock.getStore().getName());
-        response.setBookName(stock.getBook().getName());
-        response.setQuantity(stock.getQuantity());
-        return response;
+        return BookTransfer.builder()
+                .book(book)
+                .fromStore(fromStore)
+                .toStore(toStore)
+                .requestedEmployee(requestedEmployee)
+                .quantity(quantity)
+                .requestedAt(LocalDateTime.now())
+                .transferStatus(TransferStatus.PENDING)
+                .build();
     }
 
     private BookTransfer getTransferOrThrow(Long transferId) {
