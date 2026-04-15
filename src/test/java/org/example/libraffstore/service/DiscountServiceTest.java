@@ -78,7 +78,7 @@ class DiscountServiceTest {
     }
 
     @Test
-    void createDiscount_whenValidatorThrows_shouldPropagateExeption() {
+    void createDiscount_whenValidatorThrows_shouldPropagateException() {
         DiscountRequest request = buildRequest();
         doThrow(new RuntimeException("Validation failed"))
                 .when(discountValidator).validateTargets(request);
