@@ -15,6 +15,7 @@ import org.example.libraffstore.repository.EmployeeRepository;
 import org.example.libraffstore.repository.PositionRepository;
 import org.example.libraffstore.repository.StoreRepository;
 import org.example.libraffstore.validator.EmployeeValidator;
+import org.example.libraffstore.validator.PositionLimitValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class EmployeeTransferService {
     private final EmployeeWorkHistoryService workHistoryService;
     private final EmployeeValidator employeeValidator;
     private final EmployeeTransferMapper transferMapper;
+    private final PositionLimitValidator positionLimitValidator;
 
     @Transactional
     public EmployeeTransferResponse transferEmployee(EmployeeTransferRequest request) {
@@ -49,6 +51,9 @@ public class EmployeeTransferService {
         Position fromPosition = employee.getPosition();
         BigDecimal fromSalary = employee.getSalary();
         LocalDate transferDate = LocalDate.now();
+
+        positionLimitValidator.validatePositionLimitForTransfer(
+                toStore, toPosition, fromStore, fromPosition);
 
         workHistoryService.closeCurrentHistory(employee.getId());
 

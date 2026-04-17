@@ -1,6 +1,7 @@
 package org.example.libraffstore.repository;
 
 import org.example.libraffstore.entity.Employee;
+import org.example.libraffstore.enums.PositionType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -18,6 +19,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findWithDetailsById(Long id);
 
     Optional<Employee> findByFIN(String FIN);
+    long countByStoreIdAndPositionPositionTypeAndIsActiveTrue(Long storeId, PositionType positionType);
     boolean existsByFIN(String FIN);
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);

@@ -14,6 +14,7 @@ import org.example.libraffstore.repository.EmployeeRepository;
 import org.example.libraffstore.repository.PositionRepository;
 import org.example.libraffstore.repository.StoreRepository;
 import org.example.libraffstore.validator.EmployeeValidator;
+import org.example.libraffstore.validator.PositionLimitValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,6 +35,7 @@ public class EmployeeService {
     private final EmployeeValidator employeeValidator;
     private final EmployeeMapper employeeMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PositionLimitValidator positionLimitValidator;
 
     @Transactional
     public EmployeeResponse addEmployee(EmployeeRequest request) {
@@ -95,6 +97,7 @@ public class EmployeeService {
 
     private EmployeeResponse processNewHire(EmployeeRequest request, Store store, Position position) {
         employeeValidator.validateNewEmployee(request.getFIN(), request.getEmail(), request.getPhone());
+        positionLimitValidator.validatePositionLimit(store, position);
 
         Employee employee = employeeMapper.toEntity(request);
         employee.setStore(store);
@@ -115,6 +118,8 @@ public class EmployeeService {
 
         if (employee.getIsActive())
             throw new AlreadyExistsException("Bu FIN ilə aktiv işçi artıq mövcuddur: " + employee.getFIN());
+
+        positionLimitValidator.validatePositionLimit(store, position);
 
         employee.rehire(store, position, request.getDateEmployed());
 
