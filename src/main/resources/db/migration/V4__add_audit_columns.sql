@@ -1,0 +1,29 @@
+-- Books
+ALTER TABLE books
+    ADD COLUMN created_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN updated_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN deleted_at TIMESTAMP;
+
+-- Authors
+ALTER TABLE authors
+    ADD COLUMN created_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN updated_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN deleted_at TIMESTAMP;
+
+-- Employees
+ALTER TABLE employees
+    ADD COLUMN created_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN updated_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN deleted_at TIMESTAMP;
+
+-- Stores
+ALTER TABLE stores
+    ADD COLUMN created_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN updated_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN deleted_at TIMESTAMP;
+
+-- Transactions
+ALTER TABLE transactions
+    ADD COLUMN created_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN updated_at TIMESTAMP DEFAULT NOW(),
+  ADD COLUMN deleted_at TIMESTAMP;
