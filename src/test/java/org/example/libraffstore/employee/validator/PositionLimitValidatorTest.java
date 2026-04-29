@@ -1,10 +1,10 @@
-package org.example.libraffstore.validator;
+package org.example.libraffstore.employee.validator;
 
-import org.example.libraffstore.entity.Position;
-import org.example.libraffstore.entity.Store;
+import org.example.libraffstore.employee.entity.Position;
+import org.example.libraffstore.inventory.entity.Store;
 import org.example.libraffstore.enums.PositionType;
-import org.example.libraffstore.exception.BusinessException;
-import org.example.libraffstore.repository.EmployeeRepository;
+import org.example.libraffstore.common.exception.BusinessException;
+import org.example.libraffstore.employee.repository.EmployeeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -116,3 +116,4 @@ class PositionLimitValidatorTest {
         return p;
     }
 }
+

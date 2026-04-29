@@ -1,7 +1,7 @@
-package org.example.libraffstore.validator;
+package org.example.libraffstore.discount.validator;
 
-import org.example.libraffstore.dto.request.DiscountRequest;
-import org.example.libraffstore.exception.BusinessException;
+import org.example.libraffstore.common.exception.BusinessException;
+import org.example.libraffstore.discount.dto.DiscountRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

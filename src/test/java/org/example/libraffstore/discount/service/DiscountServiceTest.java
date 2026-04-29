@@ -1,12 +1,12 @@
-package org.example.libraffstore.service;
+package org.example.libraffstore.discount.service;
 
-import org.example.libraffstore.dto.request.DiscountRequest;
-import org.example.libraffstore.dto.response.DiscountResponse;
-import org.example.libraffstore.entity.Discount;
-import org.example.libraffstore.mapper.DiscountMapper;
-import org.example.libraffstore.repository.DiscountRepository;
-import org.example.libraffstore.service.helper.DiscountEntityBuilder;
-import org.example.libraffstore.validator.DiscountValidator;
+import org.example.libraffstore.discount.dto.DiscountRequest;
+import org.example.libraffstore.discount.dto.DiscountResponse;
+import org.example.libraffstore.discount.entity.Discount;
+import org.example.libraffstore.discount.mapper.DiscountMapper;
+import org.example.libraffstore.discount.repository.DiscountRepository;
+import org.example.libraffstore.discount.service.helper.DiscountEntityBuilder;
+import org.example.libraffstore.discount.validator.DiscountValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

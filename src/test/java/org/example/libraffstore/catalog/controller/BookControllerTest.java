@@ -1,9 +1,9 @@
-package org.example.libraffstore.controller;
+package org.example.libraffstore.catalog.controller;
 
-import org.example.libraffstore.dto.response.BookSingleResponse;
-import org.example.libraffstore.filters.JwtAuthenticationFilter;
-import org.example.libraffstore.service.BookService;
-import org.example.libraffstore.service.UserDetailsServiceImpl;
+import org.example.libraffstore.catalog.dto.BookSingleResponse;
+import org.example.libraffstore.catalog.service.BookService;
+import org.example.libraffstore.common.filters.JwtAuthenticationFilter;
+import org.example.libraffstore.auth.service.UserDetailsServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

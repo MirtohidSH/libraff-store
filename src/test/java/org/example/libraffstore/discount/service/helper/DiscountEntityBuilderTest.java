@@ -1,16 +1,16 @@
-package org.example.libraffstore.service.helper;
+package org.example.libraffstore.discount.service.helper;
 
-import org.example.libraffstore.dto.request.DiscountRequest;
-import org.example.libraffstore.entity.Author;
-import org.example.libraffstore.entity.Book;
-import org.example.libraffstore.entity.Discount;
-import org.example.libraffstore.entity.Genre;
-import org.example.libraffstore.entity.Store;
-import org.example.libraffstore.exception.NotFoundException;
-import org.example.libraffstore.repository.AuthorRepository;
-import org.example.libraffstore.repository.BookRepository;
-import org.example.libraffstore.repository.GenreRepository;
-import org.example.libraffstore.repository.StoreRepository;
+import org.example.libraffstore.discount.dto.DiscountRequest;
+import org.example.libraffstore.catalog.entity.Author;
+import org.example.libraffstore.catalog.entity.Book;
+import org.example.libraffstore.catalog.entity.Genre;
+import org.example.libraffstore.common.exception.NotFoundException;
+import org.example.libraffstore.discount.entity.Discount;
+import org.example.libraffstore.inventory.entity.Store;
+import org.example.libraffstore.catalog.repository.AuthorRepository;
+import org.example.libraffstore.catalog.repository.BookRepository;
+import org.example.libraffstore.catalog.repository.GenreRepository;
+import org.example.libraffstore.inventory.repository.StoreRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -164,3 +164,4 @@ class DiscountEntityBuilderTest {
         assertThat(discount.getIsActive()).isFalse();
     }
 }
+

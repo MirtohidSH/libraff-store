@@ -1,10 +1,10 @@
-package org.example.libraffstore.validator;
+package org.example.libraffstore.employee.validator;
 
-import org.example.libraffstore.entity.Position;
+import org.example.libraffstore.employee.entity.Position;
 import org.example.libraffstore.enums.PositionType;
-import org.example.libraffstore.exception.AlreadyExistsException;
-import org.example.libraffstore.exception.BusinessException;
-import org.example.libraffstore.repository.EmployeeRepository;
+import org.example.libraffstore.common.exception.AlreadyExistsException;
+import org.example.libraffstore.common.exception.BusinessException;
+import org.example.libraffstore.employee.repository.EmployeeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -170,3 +170,4 @@ class EmployeeValidatorTest {
         return position;
     }
 }
+

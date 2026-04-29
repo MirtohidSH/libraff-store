@@ -1,10 +1,10 @@
-package org.example.libraffstore.service.helper;
+package org.example.libraffstore.discount.service.helper;
 
-import org.example.libraffstore.entity.Author;
-import org.example.libraffstore.entity.Book;
-import org.example.libraffstore.entity.Discount;
-import org.example.libraffstore.entity.Genre;
-import org.example.libraffstore.repository.DiscountRepository;
+import org.example.libraffstore.catalog.entity.Author;
+import org.example.libraffstore.catalog.entity.Book;
+import org.example.libraffstore.catalog.entity.Genre;
+import org.example.libraffstore.discount.entity.Discount;
+import org.example.libraffstore.discount.repository.DiscountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;

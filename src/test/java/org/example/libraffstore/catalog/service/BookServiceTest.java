@@ -1,9 +1,9 @@
-package org.example.libraffstore.service;
+package org.example.libraffstore.catalog.service;
 
-import org.example.libraffstore.dto.response.BookSingleResponse;
-import org.example.libraffstore.entity.Book;
-import org.example.libraffstore.mapper.BookMapper;
-import org.example.libraffstore.repository.BookRepository;
+import org.example.libraffstore.catalog.dto.BookSingleResponse;
+import org.example.libraffstore.catalog.entity.Book;
+import org.example.libraffstore.catalog.mapper.BookMapper;
+import org.example.libraffstore.catalog.repository.BookRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
