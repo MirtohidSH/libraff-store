@@ -7,6 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -41,6 +45,24 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         log.warn("Validation error: {}", message);
         return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleBadCredentialsException(Exception e) {
+        log.warn("Authentication error: {}", e.getMessage());
+        return buildResponse(HttpStatus.UNAUTHORIZED, "İstifadəçi adı və ya şifrə yanlışdır.");
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabledException(DisabledException e) {
+        log.warn("Disabled user attempt: {}", e.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, "Hesabınız deaktiv edilmişdir.");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e) {
+        log.warn("Access denied: {}", e.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, "Bu əməliyyat üçün icazəniz yoxdur.");
     }
 
     @ExceptionHandler(Exception.class)

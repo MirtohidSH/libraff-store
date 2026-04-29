@@ -3,6 +3,7 @@ package org.example.libraffstore.service;
 import lombok.RequiredArgsConstructor;
 import org.example.libraffstore.entity.Employee;
 import org.example.libraffstore.repository.EmployeeRepository;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -25,6 +26,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Employee employee = employeeRepository.findByFIN(fin)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Employee not found with FIN: " + fin));
+
+        if (Boolean.FALSE.equals(employee.getIsActive())) {
+            throw new DisabledException("Employee is inactive");
+        }
 
         return new User(
                 employee.getFIN(),

@@ -30,10 +30,10 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-devtools'
 	implementation 'org.springframework.boot:spring-boot-h2console'
-
 	// ── Database ──
 	runtimeOnly 'org.postgresql:postgresql:42.7.1'
 	runtimeOnly 'com.h2database:h2'
@@ -62,6 +62,15 @@ dependencies {
 	// ── Test ──
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// ── Spring Security Test ──
+	testImplementation 'org.springframework.security:spring-security-test'
+
+	// Mockito
+	testImplementation 'org.mockito:mockito-core'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
 }
 
 tasks.named('test') {
